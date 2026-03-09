@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Panel - Service Requests</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="container">
+        <div class="admin-container">
+            <h1>Admin Panel - Service Requests</h1>
+            
+            <div class="search-bar">
+                <input type="text" id="searchInput" placeholder="Search by mobile number...">
+                <button onclick="searchRequests()" class="btn">Search</button>
+                <button onclick="loadAllRequests()" class="btn btn-secondary">Show All</button>
+            </div>
+
+            <div class="pagination">
+                <button onclick="previousPage()" class="btn">Previous</button>
+                <span id="pageInfo">Page 1</span>
+                <button onclick="nextPage()" class="btn">Next</button>
+            </div>
+
+            <table class="requests-table">
+                <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>Name</th>
+                        <th>Mobile</th>
+                        <th>Email</th>
+                        <th>Service</th>
+                        <th>Date</th>
+                        <th>Action</th>
+                    </tr>
+                </thead>
+                <tbody id="requestsTableBody">
+                </tbody>
+            </table>
+        </div>
+        <a href="/" class="btn" style="margin-top: 20px;">Back to Form</a>
+    </div>
+
+    <script>
+        let allRequests = [];
+        let filteredRequests = [];
+        let currentPage = 1;
+        const itemsPerPage = 5;
+
+        // Load all requests
+        async function loadAllRequests() {
+            try {
+                const response = await fetch('/api/requests');
+                const data = await response.json();
+                
+                if (data.success) {
+                    allRequests = data.data;
+                    filteredRequests = allRequests;
+                    currentPage = 1;
+                    displayRequests();
+                }
+            } catch (error) {
+                console.error('Error loading requests:', error);
+                alert('Error loading requests');
+            }
+        }
+
+        // Search requests
+        async function searchRequests() {
+            const mobile = document.getElementById('searchInput').value;
+            
+            if (!mobile) {
+                alert('Please enter a mobile number');
+                return;
+            }
+
+            try {
+                const response = await fetch(`/api/search/${mobile}`);
+                const data = await response.json();
+                
+                if (data.success) {
+                    filteredRequests = data.data;
+                    currentPage = 1;
+                    displayRequests();
+                }
+            } catch (error) {
+                console.error('Error searching requests:', error);
+                alert('Error searching requests');
+            }
+        }
+
+        // Display requests in table
+        function displayRequests() {
+            const tbody = document.getElementById('requestsTableBody');
+            tbody.innerHTML = '';
+
+            const start = (currentPage - 1) * itemsPerPage;
+            const end = start + itemsPerPage;
+            const pageRequests = filteredRequests.slice(start, end);
+
+            if (pageRequests.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="7">No requests found</td></tr>';
+                updatePageInfo();
+                return;
+            }
+
+            pageRequests.forEach(request => {
+                const date = new Date(request.created_at).toLocaleString();
+                const row = `
+                    <tr>
+                        <td>${request.id}</td>
+                        <td>${request.name}</td>
+                        <td>${request.mobile}</td>
+                        <td>${request.email}</td>
+                        <td>${request.service}</td>
+                        <td>${date}</td>
+                        <td>
+                            <button onclick="deleteRequest(${request.id})" class="btn btn-danger">Delete</button>
+                        </td>
+                    </tr>
+                `;
+                tbody.innerHTML += row;
+            });
+
+            updatePageInfo();
+        }
+
+        // Delete request
+        async function deleteRequest(id) {
+            if (!confirm('Are you sure you want to delete this request?')) return;
+
+            try {
+                const response = await fetch(`/api/requests/${id}`, {
+                    method: 'DELETE'
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    alert('Request deleted successfully');
+                    loadAllRequests();
+                }
+            } catch (error) {
+                console.error('Error deleting request:', error);
+                alert('Error deleting request');
+            }
+        }
+
+        // Pagination
+        function previousPage() {
+            if (currentPage > 1) {
+                currentPage--;
+                displayRequests();
+            }
+        }
+
+        function nextPage() {
+            const maxPages = Math.ceil(filteredRequests.length / itemsPerPage);
+            if (currentPage < maxPages) {
+                currentPage++;
+                displayRequests();
+            }
+        }
+
+        function updatePageInfo() {
+            const maxPages = Math.ceil(filteredRequests.length / itemsPerPage) || 1;
+            document.getElementById('pageInfo').textContent = 
+                `Page ${currentPage} of ${maxPages}`;
+        }
+
+        // Load requests on page load
+        loadAllRequests();
+    </script>
+</body>
+</html>

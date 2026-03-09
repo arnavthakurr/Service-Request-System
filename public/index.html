@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Service Request System</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="container">
+        <div class="form-container">
+            <h1>Service Request Form</h1>
+            <form id="requestForm">
+                <div class="form-group">
+                    <label for="name">Full Name:</label>
+                    <input type="text" id="name" name="name" required>
+                    <span class="error" id="nameError"></span>
+                </div>
+
+                <div class="form-group">
+                    <label for="mobile">Mobile Number:</label>
+                    <input type="tel" id="mobile" name="mobile" placeholder="10 digits" required>
+                    <span class="error" id="mobileError"></span>
+                </div>
+
+                <div class="form-group">
+                    <label for="email">Email:</label>
+                    <input type="email" id="email" name="email" required>
+                    <span class="error" id="emailError"></span>
+                </div>
+
+                <div class="form-group">
+                    <label for="service">Service Type:</label>
+                    <select id="service" name="service" required>
+                        <option value="">-- Select Service --</option>
+                        <option value="PAN Card Apply">PAN Card Apply</option>
+                        <option value="Aadhaar Update">Aadhaar Update</option>
+                        <option value="Passport Apply">Passport Apply</option>
+                        <option value="Online Form Filling">Online Form Filling</option>
+                        <option value="Document Printing">Document Printing</option>
+                    </select>
+                    <span class="error" id="serviceError"></span>
+                </div>
+
+                <div class="form-group">
+                    <label for="message">Message:</label>
+                    <textarea id="message" name="message" rows="5"></textarea>
+                </div>
+
+                <button type="submit" class="btn">Submit Request</button>
+                <a href="/admin" class="btn btn-secondary">View Admin Panel</a>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        const form = document.getElementById('requestForm');
+
+        // Validation functions
+        function validateName(name) {
+            return name.trim() !== '';
+        }
+
+        function validateMobile(mobile) {
+            return /^\d{10}$/.test(mobile);
+        }
+
+        function validateEmail(email) {
+            return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+        }
+
+        function validateService(service) {
+            return service !== '';
+        }
+
+        // Clear errors
+        function clearErrors() {
+            document.getElementById('nameError').textContent = '';
+            document.getElementById('mobileError').textContent = '';
+            document.getElementById('emailError').textContent = '';
+            document.getElementById('serviceError').textContent = '';
+        }
+
+        // Real-time validation
+        document.getElementById('name').addEventListener('blur', function() {
+            document.getElementById('nameError').textContent = 
+                validateName(this.value) ? '' : 'Name is required';
+        });
+
+        document.getElementById('mobile').addEventListener('blur', function() {
+            document.getElementById('mobileError').textContent = 
+                validateMobile(this.value) ? '' : 'Mobile must be 10 digits';
+        });
+
+        document.getElementById('email').addEventListener('blur', function() {
+            document.getElementById('emailError').textContent = 
+                validateEmail(this.value) ? '' : 'Email must be valid';
+        });
+
+        document.getElementById('service').addEventListener('change', function() {
+            document.getElementById('serviceError').textContent = 
+                validateService(this.value) ? '' : 'Service must be selected';
+        });
+
+        // Form submission
+        form.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            clearErrors();
+
+            const name = document.getElementById('name').value;
+            const mobile = document.getElementById('mobile').value;
+            const email = document.getElementById('email').value;
+            const service = document.getElementById('service').value;
+            const message = document.getElementById('message').value;
+
+            // Validate all fields
+            if (!validateName(name)) {
+                document.getElementById('nameError').textContent = 'Name is required';
+                return;
+            }
+            if (!validateMobile(mobile)) {
+                document.getElementById('mobileError').textContent = 'Mobile must be 10 digits';
+                return;
+            }
+            if (!validateEmail(email)) {
+                document.getElementById('emailError').textContent = 'Email must be valid';
+                return;
+            }
+            if (!validateService(service)) {
+                document.getElementById('serviceError').textContent = 'Service must be selected';
+                return;
+            }
+
+            try {
+                const response = await fetch('/api/submit-request', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ name, mobile, email, service, message })
+                });
+
+                const data = await response.json();
+
+                if (data.success) {
+                    alert('Request submitted successfully!');
+                    form.reset();
+                } else {
+                    alert('Error: ' + (data.errors ? data.errors.join(', ') : data.message));
+                }
+            } catch (error) {
+                alert('Error submitting request');
+                console.error(error);
+            }
+        });
+    </script>
+</body>
+</html>
